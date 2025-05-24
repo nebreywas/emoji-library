@@ -1,0 +1,114 @@
+# UI Framework Spec for AllSpark Projects
+
+## 🎯 Core Principles
+- Use **Tailwind CSS + DaisyUI** as the primary styling system.
+- Do not use `@apply` on DaisyUI classes — only on Tailwind utility primitives.
+- Separate **base styles (CSS)** from **DaisyUI classes (used in TSX)**.
+- Keep React component logic clean — apply visual styling using `className`.
+- Promote accessibility, responsiveness, and semantic HTML.
+
+---
+
+## 🧱 Styling Architecture
+
+### 1. **Base Styles (in CSS)**
+These are utility classes using only Tailwind primitives:
+- `.app-btn-base`
+- `.app-input-base`
+- `.app-card-base`
+- `.app-select-base`
+- `.app-textarea-base`
+- `.app-modal-base`
+- `.app-badge-base`
+- `.app-table-base` + `-header-base`, `-row-base`, `-cell-base`
+- `.app-section-header-base`
+- `.app-link-base`
+
+> 💡 Combine with DaisyUI in TSX, e.g. `className="btn btn-primary app-btn-base"`
+
+### 2. **Component Layer (in TSX)**
+- Use DaisyUI utility classes (`btn`, `card`, `modal`, etc.)
+- Extend with `.app-*-base` classes as needed for padding, border, layout
+
+### 3. **Design Consistency Rules**
+- All inputs must use `.app-input-base`
+- All buttons must use `.app-btn-base` or a component-specific base class
+- Avoid inventing new component libraries — DaisyUI only
+
+### 4. **Adding New Base Classes**
+When introducing new base elements, follow this pattern:
+1. Use only Tailwind utilities — no DaisyUI classes in `@apply`.
+2. Name the class `.app-[component]-base` to indicate it's used with DaisyUI.
+3. Focus on layout, padding, border, and spacing.
+4. Include a comment describing usage, DaisyUI pairings, and TSX example.
+
+---
+
+## ⚛️ React Component Usage
+- Do **not** apply `.app-*-base` classes alone — always pair with DaisyUI classes in `className`.
+- Apply all visual styling using `className`, not inline styles or styled-components.
+- Avoid writing custom styled wrappers unless logic or reuse justifies it.
+- Base styles live in `appstyle.css` — React combines them with semantic DaisyUI classes.
+
+```tsx
+// ✅ Recommended
+<input className="input input-bordered app-input-base" />
+
+// ❌ Not allowed
+<input className={styles.customInput} />
+```
+
+---
+
+## 🧪 UI Component Guidelines
+
+### ✅ Use
+```tsx
+<input className="input input-bordered app-input-base" />
+<button className="btn btn-primary app-btn-base">Submit</button>
+<div className="card app-card-base">...</div>
+```
+
+### ❌ Avoid
+```tsx
+<input className="custom-input-class" />
+<button className="btn custom-button-style">Submit</button>
+```
+
+---
+
+## 🛠 Custom Components
+- Use Tailwind + DaisyUI inside all custom components
+- Only extract to new components if you need logic or reuse
+- Document all custom component behaviors
+
+---
+
+## ♿ Accessibility
+- Ensure labels, aria attributes, keyboard support
+- Use semantic tags (`<button>`, `<section>`, `<nav>`, etc.)
+- Prefer visible focus states
+
+---
+
+## 📱 Responsive Design
+- Use `w-full`, `min-w-0`, `md:*`, `lg:*` classes
+- Avoid fixed widths or pixel values unless necessary
+- Test layout in mobile and desktop views
+
+---
+
+## 🔄 Maintenance
+- Keep DaisyUI and Tailwind versions aligned across projects
+- Review `.app-*-base` classes quarterly
+- Archive unused components or utilities
+- Document any theme customizations (e.g., primary/secondary colors)
+
+---
+
+## 📖 Reference Docs
+- [DaisyUI Docs](https://daisyui.com/components/)
+- [Tailwind CSS Docs](https://tailwindcss.com/docs/)
+- [Accessibility Guide](https://www.w3.org/WAI/test-evaluate/)
+
+> This spec governs all UI component implementation for AllSpark and related projects.

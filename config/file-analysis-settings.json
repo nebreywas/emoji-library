@@ -1,0 +1,4 @@
+{
+  "include": ["pages", "config","public", "pages/api"],
+  "exclude": ["public/dev/code-report.json"]
+} 

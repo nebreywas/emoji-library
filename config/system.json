@@ -1,0 +1,11 @@
+{
+    "system-settings": {
+      "comment": "System-level configuration",
+
+      "version": {
+        "comment": "Versioning Information",
+        "stackVersion": "1.0.0",
+        "lastUpdated": "2025-05-21"
+      }
+    }
+  }

@@ -1,0 +1,120 @@
+@import "tailwindcss";
+@plugin "daisyui" {
+  themes: all;
+}
+
+/*============================================================
+ App-wide UI Base Styles (Tailwind Only)
+============================================================*/
+
+/* Buttons */
+.app-btn-base {
+  @apply px-4 py-2 rounded-lg font-semibold transition-colors;
+}
+
+/* Cards */
+.app-card-base {
+  @apply p-1 rounded-lg shadow;
+}
+
+/* Inputs */
+.app-input-base {
+  @apply px-3 py-2 rounded-lg border text-base transition-colors;
+}
+
+/* Select Dropdown */
+.app-select-base {
+  @apply px-3 py-2 rounded-lg border text-base transition-colors;
+}
+
+/* Textareas */
+.app-textarea-base {
+  @apply px-3 py-2 rounded-lg border text-base transition-colors resize-y;
+}
+
+/* Badges */
+.app-badge-base {
+  @apply px-2 py-1 rounded-full text-xs font-semibold border transition-colors;
+}
+
+/* Table */
+.app-table-base {
+  @apply w-full text-base border rounded-lg shadow;
+}
+
+/* Table Headers */
+.app-table-header-base {
+  @apply px-4 py-2 font-bold bg-base-200 text-base-content border-b;
+}
+
+/* Table Rows */
+.app-table-row-base {
+  @apply even:bg-base-100 hover:bg-base-200 transition-colors;
+}
+
+/* Table Cells */
+.app-table-cell-base {
+  @apply px-4 py-2 border-b text-base-content;
+}
+
+/* Modal */
+.app-modal-base {
+  @apply p-8 rounded-xl shadow-lg bg-base-100 border border-base-300 max-w-lg w-full;
+}
+
+/* Section Header */
+.app-section-header-base {
+  @apply text-xl font-bold text-primary mb-4 tracking-wide;
+}
+
+/* Links */
+.app-link-base {
+  @apply underline text-primary transition-colors;
+}
+
+/* Radio Button */
+.app-radio-base {
+  /* Use with DaisyUI radio: className="radio app-radio-base" */
+  @apply w-5 h-5 border border-base-300 bg-base-100 checked:bg-primary checked:border-primary transition-colors;
+}
+
+/* Toggle (Switch) */
+.app-toggle-base {
+  /* Use with DaisyUI toggle: className="toggle app-toggle-base" */
+  @apply w-10 h-6 bg-base-200 border border-base-300 checked:bg-primary transition-colors;
+}
+
+/* Checkbox */
+.app-checkbox-base {
+  /* Use with DaisyUI checkbox: className="checkbox app-checkbox-base" */
+  @apply w-5 h-5 border border-base-300 bg-base-100 checked:bg-primary checked:border-primary transition-colors;
+}
+
+/* Alert */
+.app-alert-base {
+  /* Use with DaisyUI alert: className="alert app-alert-base" */
+  @apply px-4 py-2 rounded-lg border text-base font-medium bg-base-100 border-base-300;
+}
+
+/* Progress Bar */
+.app-progress-base {
+  /* Use with DaisyUI progress: className="progress app-progress-base" */
+  @apply h-4 rounded bg-base-200;
+}
+
+/* Label */
+.app-label-base {
+  /* Use with DaisyUI label: className="label app-label-base" or for <label> */
+  @apply text-base font-medium text-base-content mb-1;
+}
+
+/* Range Slider */
+.app-range-slider-base {
+  @apply w-full;
+}
+
+/* Tab */
+.app-tab-base {
+  /* Use with DaisyUI tab: className="tab app-tab-base" */
+  @apply px-4 py-2 text-base font-medium rounded-t-lg transition-colors;
+}
