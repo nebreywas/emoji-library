@@ -15,6 +15,11 @@ const tests = [
     description: 'Showcase of all core UI components and theme picker.',
     href: '/test/ui-demo',
   },
+  {
+    title: 'TinyColor Testcard',
+    description: 'Demonstrates color manipulation using tinycolor2.',
+    href: '/test/tinycolor-testcard',
+  },
   // Add more tests here as needed
 ];
 

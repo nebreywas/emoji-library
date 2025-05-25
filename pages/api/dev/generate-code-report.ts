@@ -1,6 +1,7 @@
 import { promises as fs } from 'fs';
 import path from 'path';
 import type { NextApiRequest, NextApiResponse } from 'next';
+import { handleApiError, wrapApiHandler } from '../../../utils/apiError';
 
 // Type for a report entry
 interface ReportEntry {
@@ -33,15 +34,16 @@ async function countLines(filePath: string): Promise<number> {
 }
 
 // API route to generate a simple line count report
-export default async function handler(
+export async function generateCodeReportHandler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
+  const location = '/api/dev/generate-code-report';
   if (req.method !== 'POST') {
-    return res.status(405).json({ error: true, message: 'Method not allowed', code: 405 });
+    return handleApiError(res, 'Method not allowed', 'METHOD_NOT_ALLOWED', 405, location);
   }
   if (process.env.NODE_ENV !== 'development') {
-    return res.status(403).json({ error: true, message: 'This tool is only available in development mode.', code: 403 });
+    return handleApiError(res, 'This tool is only available in development mode.', 'FORBIDDEN', 403, location);
   }
   try {
     const configPath = path.join(process.cwd(), 'config', 'file-analysis-settings.json');
@@ -107,6 +109,9 @@ export default async function handler(
     });
   } catch (err: any) {
     console.error('[linecount] Error:', err && err.stack ? err.stack : err);
-    res.status(500).json({ error: true, message: err.toString(), code: 500 });
+    handleApiError(res, err.message || err.toString(), err.code || 'INTERNAL_ERROR', 500, location);
   }
-} 
+}
+
+// Export the handler wrapped with the error handler
+export default wrapApiHandler(generateCodeReportHandler, '/api/dev/generate-code-report'); 
