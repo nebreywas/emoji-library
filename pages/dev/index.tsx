@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import fs from 'fs';
 import path from 'path';
-import React from 'react';
+import React, { useState } from 'react';
 
 interface HomeProps {
   systemConfig: any;
@@ -83,6 +83,16 @@ const Home: React.FC<HomeProps> = ({ systemConfig, nextVersion, codeReportTotals
                   <a className="btn btn-primary app-btn-base">Full Report</a>
                 </Link>
               </div>
+            </div>
+          </div>
+        </div>
+        {/* Emoji Dev Panel Link Card */}
+        <div className="max-w-xl w-full flex flex-col gap-2 mt-4">
+          <div className="card app-card-base bg-base-200">
+            <div className="card-body">
+              <h2 className="app-section-header-base text-lg mb-1">Emoji Asset & Config Tools</h2>
+              <p className="text-sm mb-2">Manage emoji assets, build metadata, and more.</p>
+              <a href="/dev/emoji-assets" className="btn btn-primary app-btn-base">Go to Emoji Asset Tools</a>
             </div>
           </div>
         </div>

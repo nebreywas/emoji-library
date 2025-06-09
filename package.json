@@ -14,9 +14,11 @@
   "description": "",
   "dependencies": {
     "@tailwindcss/postcss": "^4.1.7",
+    "adm-zip": "^0.5.16",
     "autoprefixer": "^10.4.21",
     "daisyui": "^5.0.37",
     "next": "^15.3.2",
+    "node-fetch": "^2.7.0",
     "postcss": "^8.4.35",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
@@ -24,7 +26,9 @@
     "tinycolor2": "^1.6.0"
   },
   "devDependencies": {
+    "@types/adm-zip": "^0.5.7",
     "@types/node": "^22.15.21",
+    "@types/node-fetch": "^2.6.12",
     "@types/react": "^19.1.5",
     "@types/react-dom": "^19.1.5",
     "@types/tinycolor2": "^1.4.6",

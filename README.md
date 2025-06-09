@@ -56,4 +56,37 @@ npm start
 
 ---
 
-*Feel free to fork and adapt this template for your own projects!* 
+## 🧱 Emoji System (In Progress)
+
+A modular, image-based emoji framework for expressive, themeable, and consistent use across AllSpark's games, UI, and messaging layers.
+
+- **Location:** `/lib/emoji/` (TypeScript)
+- **Assets:** `/public/emoji/[set]/`
+- **Config:** `/config/emoji.json`
+
+### Initial Implementation Plan
+1. Scaffold `/lib/emoji/` directory and TypeScript interfaces.
+2. Create the config file and loader.
+3. Implement the emoji resolver function.
+4. Scaffold the React component (SSR-compatible, with theming context + prop).
+5. (Next step) Build the asset download tool as a dev-only page.
+
+See `specs/emoji-system-spec.md` for full details.
+
+### Example: `config/emoji.json`
+```json
+{
+  "activeSet": "openmoji",
+  "fallbackSet": "twemoji",
+  "grayscale": false,
+  "shortcodesEnabled": true
+}
+```
+
+> Note: The emoji config file is at `config/emoji.json` and does not support comments (standard JSON). See this README and TypeScript types for documentation.
+
+---
+
+*Feel free to fork and adapt this template for your own projects!*
+
+- `/lib/emoji/` will contain TypeScript interfaces and runtime logic for the emoji system. 
