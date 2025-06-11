@@ -3,6 +3,13 @@ import fs from 'fs';
 import path from 'path';
 import { loadEmojiConfig } from '../../lib/emoji/config';
 
+// Add this at the top of the file for TypeScript global augmentation
+declare global {
+  interface Window {
+    emojiSetMaps?: Record<string, any>;
+  }
+}
+
 // Supported emoji sets and their display names
 const EMOJI_SYSTEM_CONFIG = loadEmojiConfig();
 const EMOJI_SETS_LIST = Object.entries(EMOJI_SYSTEM_CONFIG.sets).map(([id, config]) => ({
@@ -29,6 +36,7 @@ const EmojiAssetsDevPage: React.FC = () => {
   const [mapStatus, setMapStatus] = useState<Record<string, { loading: boolean, exists: boolean, size: number, date: string | null }>>({});
   const [mapCreating, setMapCreating] = useState<Record<string, boolean>>({});
   const [mapError, setMapError] = useState<Record<string, string | null>>({});
+  const [installModal, setInstallModal] = useState<{ setId: string, open: boolean } | null>(null);
 
   useEffect(() => {
     EMOJI_SETS_LIST.forEach(set => {
@@ -173,11 +181,11 @@ const EmojiAssetsDevPage: React.FC = () => {
                 <tr>
                   <th className="app-table-header-base">Set Name</th>
                   <th className="app-table-header-base">Installed?</th>
-                  <th className="app-table-header-base">Load</th>
                   <th className="app-table-header-base">Create Map</th>
                   <th className="app-table-header-base">Map Size</th>
                   <th className="app-table-header-base">Map Date</th>
                   <th className="app-table-header-base">Remove?</th>
+                  <th className="app-table-header-base">How to install</th>
                 </tr>
               </thead>
               <tbody>
@@ -195,7 +203,6 @@ const EmojiAssetsDevPage: React.FC = () => {
                           <span className="text-red-600 font-semibold">❌ Not installed</span>
                         )}
                       </td>
-                      <td className="app-table-cell-base"><button className="btn btn-secondary btn-xs">Load</button></td>
                       <td className="app-table-cell-base">
                         <button
                           className="btn btn-primary btn-xs"
@@ -227,6 +234,14 @@ const EmojiAssetsDevPage: React.FC = () => {
                         )}
                       </td>
                       <td className="app-table-cell-base"><button className="btn btn-error btn-xs">Remove</button></td>
+                      <td className="app-table-cell-base">
+                        <button
+                          className="btn btn-primary btn-xs"
+                          onClick={() => setInstallModal({ setId: set.id, open: true })}
+                        >
+                          How to install
+                        </button>
+                      </td>
                     </tr>
                   );
                 })}
@@ -264,40 +279,19 @@ const EmojiAssetsDevPage: React.FC = () => {
               <SkinToneAdder />
             </div>
           </div>
-          <div className="card app-card-base bg-base-200 md:col-span-2">
-            <div className="card-body">
-              <h2 className="app-section-header-base text-lg mb-1">Install Twemoji Assets</h2>
-              <details className="mb-1">
-                <summary className="btn btn-primary app-btn-base">How to install Twemoji assets</summary>
-                <div className="mt-3 text-sm space-y-2">
-                  <p>
-                    To add the latest Twemoji SVG assets to your project, follow these steps:
-                  </p>
-                  <ol className="list-decimal list-inside space-y-1">
-                    <li>
-                      <span className="font-medium">Download or clone the Twemoji repository from GitHub:</span>
-                      <pre className="bg-base-300 rounded p-2 mt-1 overflow-x-auto"><code>https://github.com/twitter/twemoji</code></pre>
-                      <a href="https://github.com/twitter/twemoji" target="_blank" rel="noopener noreferrer" className="app-link-base">Open Twemoji GitHub Repository</a>
-                    </li>
-                    <li>
-                      <span className="font-medium">Copy the <code>assets/svg/</code> folder from the repository into your project at <code>public/emoji/twemoji/</code> by hand.</span>
-                    </li>
-                  </ol>
-                  <p>
-                    <span className="font-medium">Why?</span> Twitter no longer provides a standalone SVG zip or npm package with SVGs. Manual copying is required.
-                  </p>
-                  <p className="text-xs text-gray-500">
-                    After copying, reference SVGs from <code>public/emoji/twemoji/svg/</code> in your app.
-                  </p>
-                </div>
-              </details>
-            </div>
-          </div>
         </div>
         <div className="max-w-4xl w-full mt-8">
           <EmojiDbBrowser />
         </div>
       </main>
+      {installModal && installModal.open && (
+        <EmojiSetInstallModal
+          open={installModal.open}
+          onClose={() => setInstallModal(null)}
+          setId={installModal.setId}
+          setConf={EMOJI_SYSTEM_CONFIG.sets[installModal.setId]}
+        />
+      )}
     </>
   );
 };
@@ -554,35 +548,57 @@ function EmojiDbBrowser() {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [showAll, setShowAll] = useState(false);
 
-  // Load emoji-base and set map
+  // Load emoji-base and set map (skip map for native)
   useEffect(() => {
     setLoading(true);
     setLoadError(null);
-    Promise.all([
+    if (setKey === 'native') {
       fetch('/dev/emoji/emoji-base.json').then(async r => {
         if (!r.ok) throw new Error('emoji-base.json not found');
         return r.json();
-      }),
-      fetch(`/dev/emoji/emoji-${setKey}.json`).then(async r => {
-        if (!r.ok) throw new Error(`emoji-${setKey}.json not found`);
-        return r.json();
-      })
-    ]).then(([base, map]) => {
-      setEmojiBase(base);
-      setSetMap(map);
-      const codes = Object.keys(base);
-      setEmojiList(codes);
-      setIndex(0);
-      setLoading(false);
-    }).catch(err => {
-      setLoading(false);
-      setEmojiBase(null);
-      setSetMap(null);
-      setEmojiList([]);
-      setIndex(0);
-      setLoadError(err.message);
-    });
+      }).then(base => {
+        setEmojiBase(base);
+        setSetMap(null);
+        const codes = Object.keys(base);
+        setEmojiList(codes);
+        setIndex(0);
+        setLoading(false);
+      }).catch(err => {
+        setLoading(false);
+        setEmojiBase(null);
+        setSetMap(null);
+        setEmojiList([]);
+        setIndex(0);
+        setLoadError(err.message);
+      });
+    } else {
+      Promise.all([
+        fetch('/dev/emoji/emoji-base.json').then(async r => {
+          if (!r.ok) throw new Error('emoji-base.json not found');
+          return r.json();
+        }),
+        fetch(`/dev/emoji/emoji-${setKey}.json`).then(async r => {
+          if (!r.ok) throw new Error(`emoji-${setKey}.json not found`);
+          return r.json();
+        })
+      ]).then(([base, map]) => {
+        setEmojiBase(base);
+        setSetMap(map);
+        const codes = Object.keys(base);
+        setEmojiList(codes);
+        setIndex(0);
+        setLoading(false);
+      }).catch(err => {
+        setLoading(false);
+        setEmojiBase(null);
+        setSetMap(null);
+        setEmojiList([]);
+        setIndex(0);
+        setLoadError(err.message);
+      });
+    }
   }, [setKey]);
 
   // Find emoji by shortcode or codepoint
@@ -608,16 +624,17 @@ function EmojiDbBrowser() {
     }
     return <div className="text-center text-error">{loadError}</div>;
   }
-  if (!emojiBase || !setMap) return <div className="text-center">No data loaded.</div>;
+  if (!emojiBase || (setKey !== 'native' && !setMap)) return <div className="text-center">No data loaded.</div>;
   const code = emojiList[index];
   const meta = emojiBase[code];
-  const asset = setMap[code]?.assetPath;
+  const asset = setMap ? setMap[code]?.assetPath : null;
   return (
     <div className="card app-card-base bg-base-200">
       <div className="card-body">
         <h2 className="app-section-header-base text-lg mb-1">Emoji DB Browser</h2>
         <div className="flex flex-col md:flex-row gap-2 items-center mb-2">
           <select className="select select-bordered" value={setKey} onChange={e => setSetKey(e.target.value)}>
+            <option value="native">Native (Platform)</option>
             {Object.entries(EMOJI_SYSTEM_CONFIG.sets).map(([key, conf]) => (
               <option key={key} value={key}>{conf.name}</option>
             ))}
@@ -635,7 +652,9 @@ function EmojiDbBrowser() {
         <div className="flex items-center justify-center gap-4 mb-2">
           <button className="btn btn-outline btn-sm" onClick={() => setIndex((index - 1 + emojiList.length) % emojiList.length)}>&larr;</button>
           <div className="text-center cursor-pointer" onClick={() => setIndex(Math.floor(Math.random() * emojiList.length))}>
-            {asset ? (
+            {setKey === 'native' ? (
+              <span style={{ fontSize: '3rem', lineHeight: 1 }}>{meta.unicode}</span>
+            ) : asset ? (
               <img src={asset} alt={meta.name} className="w-16 h-16 mx-auto" />
             ) : (
               <div className="w-16 h-16 flex items-center justify-center bg-base-300 rounded text-lg font-bold">Nomoji!</div>
@@ -646,7 +665,95 @@ function EmojiDbBrowser() {
         <div className="text-sm text-center">
           <div><span className="font-semibold">Codepoint:</span> {code}</div>
           <div><span className="font-semibold">Shortcodes:</span> {(meta.shortcodes || []).join(', ')}</div>
+          <button className="btn btn-xs btn-outline mt-2" onClick={() => setShowAll(v => !v)}>{showAll ? 'Hide All' : 'All'}</button>
         </div>
+        {showAll && (
+          <div className="mt-4 grid grid-cols-2 md:grid-cols-3 gap-4">
+            {/* Native */}
+            <div className="flex flex-col items-center">
+              <span style={{ fontSize: '2.5rem', lineHeight: 1 }}>{meta.unicode}</span>
+              <span className="mt-1 text-xs">Native (Platform)</span>
+            </div>
+            {/* All asset sets */}
+            {Object.entries(EMOJI_SYSTEM_CONFIG.sets).map(([setId, setConf]) => {
+              // Try to get asset for this set
+              let asset = null;
+              if (setId === setKey) {
+                asset = setMap ? setMap[code]?.assetPath : null;
+              } else {
+                // Try to load the map for this set from window.emojiSetMaps cache or fetch if not present
+                // For now, try to fetch synchronously (not ideal for perf, but works for dev tool)
+                // In a real app, you'd want to prefetch or cache these
+                if (typeof window !== 'undefined') {
+                  if (!window.emojiSetMaps) window.emojiSetMaps = {};
+                  if (!window.emojiSetMaps[setId]) {
+                    // Try to fetch and cache
+                    fetch(`/dev/emoji/emoji-${setId}.json`).then(r => r.ok ? r.json() : null).then(map => {
+                      if (map) window.emojiSetMaps![setId] = map;
+                    });
+                  }
+                  asset = window.emojiSetMaps[setId]?.[code]?.assetPath || null;
+                }
+              }
+              return (
+                <div key={setId} className="flex flex-col items-center">
+                  {asset ? (
+                    <img src={asset} alt={meta.name} style={{ width: '2.5rem', height: '2.5rem' }} />
+                  ) : (
+                    <div className="w-10 h-10 flex items-center justify-center bg-base-300 rounded text-lg font-bold">Nomoji!</div>
+                  )}
+                  <span className="mt-1 text-xs">{setConf.name}</span>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function EmojiSetInstallModal({ open, onClose, setId, setConf }: { open: boolean, onClose: () => void, setId: string, setConf: any }) {
+  if (!open) return null;
+  let instructions = null;
+  if (setId === 'twemoji') {
+    instructions = (
+      <>
+        <p>
+          To add the latest Twemoji SVG assets to your project, follow these steps:
+        </p>
+        <ol className="list-decimal list-inside space-y-1">
+          <li>
+            <span className="font-medium">Download or clone the Twemoji repository from GitHub:</span>
+            <pre className="bg-base-300 rounded p-2 mt-1 overflow-x-auto"><code>https://github.com/twitter/twemoji</code></pre>
+            <a href="https://github.com/twitter/twemoji" target="_blank" rel="noopener noreferrer" className="app-link-base">Open Twemoji GitHub Repository</a>
+          </li>
+          <li>
+            <span className="font-medium">Copy the <code>assets/svg/</code> folder from the repository into your project at <code>public/emoji/twemoji/</code> by hand.</span>
+          </li>
+        </ol>
+        <p>
+          <span className="font-medium">Why?</span> Twitter no longer provides a standalone SVG zip or npm package with SVGs. Manual copying is required.
+        </p>
+        <p className="text-xs text-gray-500">
+          After copying, reference SVGs from <code>public/emoji/twemoji/svg/</code> in your app.
+        </p>
+      </>
+    );
+  } else {
+    instructions = (
+      <>
+        <p>Instructions for installing <b>{setConf.name}</b> assets will go here.</p>
+        <p className="text-xs text-gray-500">(No instructions yet. Please add them in the future.)</p>
+      </>
+    );
+  }
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.60)' }}>
+      <div className="bg-base-100 rounded-lg shadow-lg p-6 max-w-lg w-full relative">
+        <button className="absolute top-2 right-2 btn btn-xs btn-circle" onClick={onClose}>✕</button>
+        <h3 className="text-lg font-bold mb-2">Install {setConf.name} Assets</h3>
+        <div className="space-y-2">{instructions}</div>
       </div>
     </div>
   );

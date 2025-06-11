@@ -21,6 +21,11 @@ const tests = [
     href: '/test/tinycolor-testcard',
   },
   // Add more tests here as needed
+  {
+    title: 'Emoji Asset Test',
+    description: 'Test and preview emoji asset sets and browser features.',
+    href: '/test/emoji-asset-test',
+  },
 ];
 
 export default function TestIndex() {
