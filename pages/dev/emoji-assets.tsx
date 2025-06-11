@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import fs from 'fs';
 import path from 'path';
-import { EMOJI_SYSTEM_CONFIG } from '../../config/emoji-system-config';
+import { loadEmojiConfig } from '../../lib/emoji/config';
 
 // Supported emoji sets and their display names
+const EMOJI_SYSTEM_CONFIG = loadEmojiConfig();
 const EMOJI_SETS_LIST = Object.entries(EMOJI_SYSTEM_CONFIG.sets).map(([id, config]) => ({
   id,
   name: config.name,
@@ -35,7 +36,11 @@ const EmojiAssetsDevPage: React.FC = () => {
       fetch(`/api/dev/emoji/emoji-asset-status?set=${set.id}`)
         .then(res => res.json())
         .then(data => {
-          setAssetStatus(prev => ({ ...prev, [set.id]: { loading: false, exists: data.exists, fileCount: data.fileCount } }));
+          if (!data.success) {
+            setAssetStatus(prev => ({ ...prev, [set.id]: { loading: false, exists: false, fileCount: 0 } }));
+          } else {
+            setAssetStatus(prev => ({ ...prev, [set.id]: { loading: false, exists: data.data.exists, fileCount: data.data.fileCount } }));
+          }
         })
         .catch(() => {
           setAssetStatus(prev => ({ ...prev, [set.id]: { loading: false, exists: false, fileCount: 0 } }));
@@ -45,7 +50,11 @@ const EmojiAssetsDevPage: React.FC = () => {
       fetch(`/api/dev/emoji/emoji-map-status?set=${set.id}`)
         .then(res => res.json())
         .then(data => {
-          setMapStatus(prev => ({ ...prev, [set.id]: { loading: false, exists: data.exists, size: data.size, date: data.date } }));
+          if (!data.success) {
+            setMapStatus(prev => ({ ...prev, [set.id]: { loading: false, exists: false, size: 0, date: null } }));
+          } else {
+            setMapStatus(prev => ({ ...prev, [set.id]: { loading: false, exists: data.data.exists, size: data.data.size, date: data.data.date } }));
+          }
         })
         .catch(() => {
           setMapStatus(prev => ({ ...prev, [set.id]: { loading: false, exists: false, size: 0, date: null } }));
@@ -72,11 +81,11 @@ const EmojiAssetsDevPage: React.FC = () => {
         body: JSON.stringify({ sets: selected }),
       });
       const data = await res.json();
-      if (!res.ok) {
+      if (!data.success) {
         setError(data.error || 'Unknown error');
         setStatus('');
       } else {
-        setStatus(data.status || 'Download complete.');
+        setStatus(data.data?.status || 'Download complete.');
       }
     } catch (err: any) {
       setError(err.message || String(err));
@@ -96,10 +105,10 @@ const EmojiAssetsDevPage: React.FC = () => {
         body: JSON.stringify({ set: setKey }),
       });
       const data = await res.json();
-      if (!res.ok) {
+      if (!data.success) {
         setError(data.error || 'Unknown error');
       } else {
-        setStatus(data.status || 'Set removed.');
+        setStatus(data.data?.status || 'Set removed.');
       }
     } catch (err: any) {
       setError(err.message || String(err));
@@ -114,23 +123,32 @@ const EmojiAssetsDevPage: React.FC = () => {
     setMapError(prev => ({ ...prev, [setKey]: null }));
     try {
       const res = await fetch(`/api/dev/emoji/build-emoji-set-map?set=${setKey}`, { method: 'POST' });
-      const data = await res.json();
-      if (!res.ok) {
-        setMapError(prev => ({ ...prev, [setKey]: data.error || 'Error creating map' }));
+      let data;
+      try {
+        data = await res.json();
+      } catch {
+        data = {};
+      }
+      if (!data.success) {
+        setMapError(prev => ({ ...prev, [setKey]: data.error || 'Error creating map (invalid response)' }));
       } else {
         // Refresh map status for this set
         setMapStatus(prev => ({ ...prev, [setKey]: { loading: true, exists: false, size: 0, date: null } }));
         fetch(`/api/dev/emoji/emoji-map-status?set=${setKey}`)
           .then(res => res.json())
           .then(data => {
-            setMapStatus(prev => ({ ...prev, [setKey]: { loading: false, exists: data.exists, size: data.size, date: data.date } }));
+            if (!data.success) {
+              setMapStatus(prev => ({ ...prev, [setKey]: { loading: false, exists: false, size: 0, date: null } }));
+            } else {
+              setMapStatus(prev => ({ ...prev, [setKey]: { loading: false, exists: data.data.exists, size: data.data.size, date: data.data.date } }));
+            }
           })
           .catch(() => {
             setMapStatus(prev => ({ ...prev, [setKey]: { loading: false, exists: false, size: 0, date: null } }));
           });
       }
     } catch (err: any) {
-      setMapError(prev => ({ ...prev, [setKey]: err.message || 'Error creating map' }));
+      setMapError(prev => ({ ...prev, [setKey]: err.message || 'Error creating map (network or server error)' }));
     } finally {
       setMapCreating(prev => ({ ...prev, [setKey]: false }));
     }
@@ -295,13 +313,13 @@ function EmojiBaseBuilder() {
   React.useEffect(() => {
     async function checkFile() {
       try {
-        const res = await fetch('/dev/emoji-base.json');
+        const res = await fetch('/dev/emoji/emoji-base.json');
         if (res.ok) {
           const json = await res.json();
           setCount(Object.keys(json).length);
           setExists(true);
           // Get last modified date via HEAD request
-          const head = await fetch('/dev/emoji-base.json', { method: 'HEAD' });
+          const head = await fetch('/dev/emoji/emoji-base.json', { method: 'HEAD' });
           const date = head.headers.get('last-modified');
           setLastModified(date);
         } else {
@@ -321,13 +339,13 @@ function EmojiBaseBuilder() {
     try {
       const res = await fetch('/api/dev/emoji/build-emoji-base', { method: 'POST' });
       const data = await res.json();
-      if (res.ok) {
+      if (!data.success) {
+        setStatus(data.error || 'Error');
+      } else {
         setStatus('Success!');
-        setCount(data.count);
+        setCount(data.data.count);
         setExists(true);
         setLastModified(new Date().toLocaleString());
-      } else {
-        setStatus(data.error || 'Error');
       }
     } catch (err: any) {
       setStatus(err.message || 'Error');
@@ -360,6 +378,7 @@ function GemojiShortcodeMerger() {
   const [updated, setUpdated] = useState<number|null>(null);
   const [total, setTotal] = useState<number|null>(null);
   const [loading, setLoading] = useState(false);
+  // Handles merging gemoji shortcodes, with robust error handling for API responses
   const handleMerge = async () => {
     setLoading(true);
     setStatus('Merging...');
@@ -367,16 +386,34 @@ function GemojiShortcodeMerger() {
     setTotal(null);
     try {
       const res = await fetch('/api/dev/emoji/merge-gemoji-shortcodes', { method: 'POST' });
-      const data = await res.json();
-      if (res.ok) {
+      let data: any = null;
+      try {
+        data = await res.json();
+      } catch (jsonErr) {
+        // If response is not JSON, show a generic error
+        setStatus('Error: Invalid server response');
+        return;
+      }
+      // Standard: check HTTP status and error field
+      if (!res.ok || !data.success) {
+        setStatus(`Error: ${data?.error || res.statusText || 'Unknown error'}`);
+        return;
+      }
+      // Only access data if present
+      if (data && (typeof data.updated === 'number') && (typeof data.total === 'number')) {
         setStatus('Success!');
         setUpdated(data.updated);
         setTotal(data.total);
+      } else if (data && data.data && (typeof data.data.updated === 'number') && (typeof data.data.total === 'number')) {
+        // Backward compatibility: handle nested data
+        setStatus('Success!');
+        setUpdated(data.data.updated);
+        setTotal(data.data.total);
       } else {
-        setStatus(data.error || 'Error');
+        setStatus('Success, but no update info returned.');
       }
     } catch (err: any) {
-      setStatus(err.message || 'Error');
+      setStatus(`Network or server error: ${err.message || err}`);
     } finally {
       setLoading(false);
     }
@@ -400,6 +437,7 @@ function IamcalShortcodeMerger() {
   const [updated, setUpdated] = useState<number|null>(null);
   const [total, setTotal] = useState<number|null>(null);
   const [loading, setLoading] = useState(false);
+  // Handles merging iamcal shortcodes, with robust error handling for API responses
   const handleMerge = async () => {
     setLoading(true);
     setStatus('Merging...');
@@ -407,16 +445,30 @@ function IamcalShortcodeMerger() {
     setTotal(null);
     try {
       const res = await fetch('/api/dev/emoji/merge-iamcal-shortcodes', { method: 'POST' });
-      const data = await res.json();
-      if (res.ok) {
+      let data: any = null;
+      try {
+        data = await res.json();
+      } catch (jsonErr) {
+        setStatus('Error: Invalid server response');
+        return;
+      }
+      if (!res.ok || !data.success) {
+        setStatus(`Error: ${data?.error || res.statusText || 'Unknown error'}`);
+        return;
+      }
+      if (data && (typeof data.updated === 'number') && (typeof data.total === 'number')) {
         setStatus('Success!');
         setUpdated(data.updated);
         setTotal(data.total);
+      } else if (data && data.data && (typeof data.data.updated === 'number') && (typeof data.data.total === 'number')) {
+        setStatus('Success!');
+        setUpdated(data.data.updated);
+        setTotal(data.data.total);
       } else {
-        setStatus(data.error || 'Error');
+        setStatus('Success, but no update info returned.');
       }
     } catch (err: any) {
-      setStatus(err.message || 'Error');
+      setStatus(`Network or server error: ${err.message || err}`);
     } finally {
       setLoading(false);
     }
@@ -440,6 +492,7 @@ function SkinToneAdder() {
   const [updated, setUpdated] = useState<number|null>(null);
   const [total, setTotal] = useState<number|null>(null);
   const [loading, setLoading] = useState(false);
+  // Handles adding skin tone field, with robust error handling for API responses
   const handleAdd = async () => {
     setLoading(true);
     setStatus('Adding...');
@@ -447,16 +500,33 @@ function SkinToneAdder() {
     setTotal(null);
     try {
       const res = await fetch('/api/dev/emoji/add-skin-tone-field', { method: 'POST' });
-      const data = await res.json();
-      if (res.ok) {
+      let data: any = null;
+      try {
+        data = await res.json();
+      } catch (jsonErr) {
+        setStatus('Error: Invalid server response');
+        return;
+      }
+      // Standard: check HTTP status and error field
+      if (!res.ok || !data.success) {
+        setStatus(`Error: ${data?.error || res.statusText || 'Unknown error'}`);
+        return;
+      }
+      // Only access data if present
+      if (data && (typeof data.updated === 'number') && (typeof data.total === 'number')) {
         setStatus('Success!');
         setUpdated(data.updated);
         setTotal(data.total);
+      } else if (data && data.data && (typeof data.data.updated === 'number') && (typeof data.data.total === 'number')) {
+        // Backward compatibility: handle nested data
+        setStatus('Success!');
+        setUpdated(data.data.updated);
+        setTotal(data.data.total);
       } else {
-        setStatus(data.error || 'Error');
+        setStatus('Success, but no update info returned.');
       }
     } catch (err: any) {
-      setStatus(err.message || 'Error');
+      setStatus(`Network or server error: ${err.message || err}`);
     } finally {
       setLoading(false);
     }
@@ -483,13 +553,21 @@ function EmojiDbBrowser() {
   const [index, setIndex] = useState(0);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   // Load emoji-base and set map
   useEffect(() => {
     setLoading(true);
+    setLoadError(null);
     Promise.all([
-      fetch('/dev/emoji-base.json').then(r => r.json()),
-      fetch(`/dev/emoji-${setKey}.json`).then(r => r.json())
+      fetch('/dev/emoji/emoji-base.json').then(async r => {
+        if (!r.ok) throw new Error('emoji-base.json not found');
+        return r.json();
+      }),
+      fetch(`/dev/emoji/emoji-${setKey}.json`).then(async r => {
+        if (!r.ok) throw new Error(`emoji-${setKey}.json not found`);
+        return r.json();
+      })
     ]).then(([base, map]) => {
       setEmojiBase(base);
       setSetMap(map);
@@ -497,6 +575,13 @@ function EmojiDbBrowser() {
       setEmojiList(codes);
       setIndex(0);
       setLoading(false);
+    }).catch(err => {
+      setLoading(false);
+      setEmojiBase(null);
+      setSetMap(null);
+      setEmojiList([]);
+      setIndex(0);
+      setLoadError(err.message);
     });
   }, [setKey]);
 
@@ -513,9 +598,17 @@ function EmojiDbBrowser() {
     if (idx !== -1) setIndex(idx);
   };
 
-  if (loading || !emojiBase || !setMap) {
-    return <div className="text-center">Loading...</div>;
+  if (loading) return <div className="text-center">Loading...</div>;
+  if (loadError) {
+    if (loadError.includes('emoji-base.json')) {
+      return <div className="text-center text-error">emoji-base.json not found. Please build it using the tool above.</div>;
+    }
+    if (loadError.includes('not found')) {
+      return <div className="text-center text-warning">No emoji map found for this set. Use the table above to create one.</div>;
+    }
+    return <div className="text-center text-error">{loadError}</div>;
   }
+  if (!emojiBase || !setMap) return <div className="text-center">No data loaded.</div>;
   const code = emojiList[index];
   const meta = emojiBase[code];
   const asset = setMap[code]?.assetPath;
@@ -553,11 +646,21 @@ function EmojiDbBrowser() {
         <div className="text-sm text-center">
           <div><span className="font-semibold">Codepoint:</span> {code}</div>
           <div><span className="font-semibold">Shortcodes:</span> {(meta.shortcodes || []).join(', ')}</div>
-          <div><span className="font-semibold">Asset Path:</span> {asset || <span className="text-error">(missing)</span>}</div>
         </div>
       </div>
     </div>
   );
+}
+
+// Utility to handle standardized API responses
+function handleApiResponse(data: any) {
+  if (!data || typeof data.success !== 'boolean') {
+    return { success: false, error: 'Invalid server response' };
+  }
+  if (!data.success) {
+    return { success: false, error: data.error || 'Unknown error' };
+  }
+  return { success: true, data: data.data };
 }
 
 export default EmojiAssetsDevPage; 

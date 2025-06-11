@@ -1,13 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { GetStaticProps } from 'next';
 import { getEmojiElement } from '../../lib/emoji';
-import { EmojiEntry, EmojiSetMap, EmojiConfig } from '../../lib/emoji/types';
+import { EmojiEntry, EmojiSetMap, EmojiSystemConfig } from '../../lib/emoji/types';
 import path from 'path';
 import fs from 'fs';
 import Link from 'next/link';
-import { EMOJI_SYSTEM_CONFIG } from '../../config/emoji-system-config';
+import { loadEmojiConfig } from '../../lib/emoji/config';
 
 // List of supported sets (expand as more are enabled)
+const EMOJI_SYSTEM_CONFIG = loadEmojiConfig();
 const EMOJI_SETS = Object.entries(EMOJI_SYSTEM_CONFIG.sets).map(([id, config]) => ({
   id,
   name: config.name,
@@ -37,7 +38,7 @@ const SENSA_EMOJIS = [
 
 interface EmojiAssetTestPageProps {
   emojiBase: Record<string, EmojiEntry>;
-  config: EmojiConfig;
+  config: EmojiSystemConfig;
   emojiSet: Record<string, EmojiSetMap>;
 }
 
@@ -186,8 +187,27 @@ export const getStaticProps: GetStaticProps = async () => {
   const emojiBasePath = path.resolve(process.cwd(), 'public', 'dev', 'emoji', 'emoji-base.json');
   const emojiBase: Record<string, EmojiEntry> = JSON.parse(fs.readFileSync(emojiBasePath, 'utf-8'));
 
-  // Use imported config
-  const config = EMOJI_SYSTEM_CONFIG;
+  // Use imported config via loader
+  const config = loadEmojiConfig();
+
+  // Helper to strip functions from config for serialization
+  function stripFunctions(obj: any): any {
+    if (Array.isArray(obj)) {
+      return obj.map(stripFunctions);
+    } else if (obj && typeof obj === 'object') {
+      const result: any = {};
+      for (const key in obj) {
+        if (typeof obj[key] !== 'function') {
+          result[key] = stripFunctions(obj[key]);
+        }
+      }
+      return result;
+    }
+    return obj;
+  }
+
+  // Create a JSON-safe config
+  const safeConfig = stripFunctions(config);
 
   // Load set maps for active and fallback sets
   const setsToLoad = [config.activeSet, config.fallbackSet];
@@ -198,15 +218,15 @@ export const getStaticProps: GetStaticProps = async () => {
       if (fs.existsSync(setPath)) {
         emojiSet[setName] = JSON.parse(fs.readFileSync(setPath, 'utf-8'));
       }
-    } catch {
-      // Ignore errors for missing sets
+    } catch (e) {
+      // ignore
     }
   }
 
   return {
     props: {
       emojiBase,
-      config,
+      config: safeConfig,
       emojiSet,
     },
   };

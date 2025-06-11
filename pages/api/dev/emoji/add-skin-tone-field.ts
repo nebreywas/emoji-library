@@ -26,7 +26,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     // Load emoji-base.json
     if (!fs.existsSync(EMOJI_BASE_PATH)) {
-      return res.status(400).json({ error: 'emoji-base.json not found. Build base first.' });
+      return res.status(400).json({ success: false, error: 'emoji-base.json not found. Build base first.' });
     }
     const baseRaw = fs.readFileSync(EMOJI_BASE_PATH, 'utf-8');
     const emojiBase = JSON.parse(baseRaw);
@@ -42,8 +42,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // Write updated emojiBase
     fs.writeFileSync(EMOJI_BASE_PATH, JSON.stringify(emojiBase, null, 2), 'utf-8');
-    return res.status(200).json({ status: 'ok', updated, total: Object.keys(emojiBase).length });
+    return res.status(200).json({ success: true, data: { updated, total: Object.keys(emojiBase).length } });
   } catch (err: any) {
-    return res.status(500).json({ error: err.message || String(err) });
+    return res.status(500).json({ success: false, error: err.message || String(err) });
   }
 } 

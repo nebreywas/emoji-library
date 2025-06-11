@@ -1,5 +1,5 @@
 import { EmojiEntry, EmojiSetMap } from './types';
-import { EmojiSystemConfig } from '../../config/emoji-system-config';
+import { loadEmojiConfig } from './config';
 import { resolveEmoji } from './resolve';
 import React from 'react';
 import type { ReactElement } from 'react';
@@ -62,7 +62,7 @@ export function getEmojiElement(
   input: string,
   options: EmojiDisplayOptions = {},
   emojiBase: Record<string, EmojiEntry>,
-  config: EmojiSystemConfig,
+  config: ReturnType<typeof loadEmojiConfig>,
   emojiSet: Record<string, EmojiSetMap>
 ): ReactElement {
   // Determine sets to try

@@ -38,7 +38,7 @@ export async function generateCodeReportHandler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
-  const location = '/api/dev/generate-code-report';
+  const location = '/api/dev/emoji/generate-code-report';
   if (req.method !== 'POST') {
     return handleApiError(res, 'Method not allowed', 'METHOD_NOT_ALLOWED', 405, location);
   }
@@ -114,4 +114,4 @@ export async function generateCodeReportHandler(
 }
 
 // Export the handler wrapped with the error handler
-export default wrapApiHandler(generateCodeReportHandler, '/api/dev/generate-code-report'); 
+export default wrapApiHandler(generateCodeReportHandler, '/api/dev/emoji/generate-code-report'); 

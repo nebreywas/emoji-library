@@ -18,7 +18,7 @@ const TWEMOJI_VERSION = '14.0.2';
 const TWEMOJI_ZIP_URL = `https://github.com/twitter/twemoji/releases/download/v${TWEMOJI_VERSION}/72x72.zip`;
 
 /**
- * Downloads and extracts OpenMoji SVG color assets to /public/emoji/openmoji/svg/color/
+ * Downloads and extracts OpenMoji SVG color assets to /public/dev/emoji/openmoji/svg/color/
  */
 async function downloadAndExtractOpenMoji(): Promise<{ success: boolean; error?: string }> {
   try {
@@ -38,7 +38,7 @@ async function downloadAndExtractOpenMoji(): Promise<{ success: boolean; error?:
       return { success: false, error: 'No SVG color assets found in OpenMoji zip.' };
     }
     // Ensure output directory exists
-    const outDir = path.join(process.cwd(), 'public', 'emoji', 'openmoji', 'svg', 'color');
+    const outDir = path.join(process.cwd(), 'public', 'dev', 'emoji', 'openmoji', 'svg', 'color');
     fs.mkdirSync(outDir, { recursive: true });
     // Extract each file
     for (const entry of entries) {
@@ -52,7 +52,7 @@ async function downloadAndExtractOpenMoji(): Promise<{ success: boolean; error?:
 }
 
 /**
- * Downloads and extracts Twemoji PNG assets to /public/emoji/twemoji/png/
+ * Downloads and extracts Twemoji PNG assets to /public/dev/emoji/twemoji/png/
  */
 async function downloadAndExtractTwemoji(): Promise<{ success: boolean; error?: string }> {
   try {
@@ -66,7 +66,7 @@ async function downloadAndExtractTwemoji(): Promise<{ success: boolean; error?: 
     if (entries.length === 0) {
       return { success: false, error: 'No PNG assets found in Twemoji zip.' };
     }
-    const outDir = path.join(process.cwd(), 'public', 'emoji', 'twemoji', 'png');
+    const outDir = path.join(process.cwd(), 'public', 'dev', 'emoji', 'twemoji', 'png');
     fs.mkdirSync(outDir, { recursive: true });
     for (const entry of entries) {
       const outPath = path.join(outDir, path.basename(entry.entryName));
@@ -86,29 +86,29 @@ async function downloadAndExtractTwemoji(): Promise<{ success: boolean; error?: 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
     if (req.method !== 'POST') {
-      return res.status(405).json({ error: 'Method not allowed' });
+      return res.status(405).json({ success: false, error: 'Method not allowed' });
     }
     const { sets } = req.body;
     if (!Array.isArray(sets) || sets.some((s) => !SUPPORTED_SETS.includes(s))) {
-      return res.status(400).json({ error: 'Invalid or missing sets' });
+      return res.status(400).json({ success: false, error: 'Invalid or missing sets' });
     }
 
     // Handle OpenMoji
     if (sets.includes('openmoji')) {
       const result = await downloadAndExtractOpenMoji();
       if (!result.success) {
-        return res.status(500).json({ error: result.error });
+        return res.status(500).json({ success: false, error: result.error });
       }
     }
     // Handle Twemoji
     if (sets.includes('twemoji')) {
       const result = await downloadAndExtractTwemoji();
       if (!result.success) {
-        return res.status(500).json({ error: result.error });
+        return res.status(500).json({ success: false, error: result.error });
       }
     }
-    return res.status(200).json({ status: 'Selected sets downloaded and extracted.' });
+    return res.status(200).json({ success: true, data: { message: 'Selected sets downloaded and extracted.' } });
   } catch (err: any) {
-    res.status(500).json({ error: err.message || String(err) });
+    res.status(500).json({ success: false, error: err.message || String(err) });
   }
 } 

@@ -89,4 +89,27 @@ See `specs/emoji-system-spec.md` for full details.
 
 *Feel free to fork and adapt this template for your own projects!*
 
-- `/lib/emoji/` will contain TypeScript interfaces and runtime logic for the emoji system. 
+- `/lib/emoji/` will contain TypeScript interfaces and runtime logic for the emoji system.
+
+## Emoji Subsystem
+
+The Emoji Subsystem provides modular, extensible emoji data management, merging, and asset handling for the project. It is designed for easy integration, extension, and maintenance.
+
+### Directory Structure
+- `lib/emoji/` — Core emoji logic, config, and utilities
+- `public/dev/emoji/` — Generated emoji data files and assets
+- `pages/api/dev/emoji/` — API routes for emoji admin/merge actions
+- `docs/library-docs/emoji.md` — In-depth documentation (see below)
+
+### Key Features
+- Merge and enrich emoji data from multiple sources (e.g., gemoji, iamcal)
+- Centralized config for emoji sets and paths
+- Admin UI for merging, updating, and browsing emoji data
+- Robust error handling and clear user feedback
+
+### How to Extend
+- Add a new emoji set: update the config in `lib/emoji/config.ts` and add assets to `public/dev/emoji/`
+- Add new merge logic: create a new API route in `pages/api/dev/emoji/`
+- Add new admin tools: extend the UI in `pages/dev/emoji-assets.tsx`
+
+For detailed documentation, see [`docs/library-docs/emoji.md`](docs/library-docs/emoji.md). 

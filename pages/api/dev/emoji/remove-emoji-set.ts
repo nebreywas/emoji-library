@@ -11,21 +11,21 @@ const SUPPORTED_SETS = ['openmoji', 'twemoji']; // Expand as more sets are suppo
  */
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
+    return res.status(405).json({ success: false, error: 'Method not allowed' });
   }
   const { set } = req.body;
   if (!set || !SUPPORTED_SETS.includes(set)) {
-    return res.status(400).json({ error: 'Invalid or missing set' });
+    return res.status(400).json({ success: false, error: 'Invalid or missing set' });
   }
   try {
     const dir = path.join(process.cwd(), 'public', 'emoji', set);
     if (fs.existsSync(dir)) {
       fs.rmSync(dir, { recursive: true, force: true });
-      return res.status(200).json({ status: `Removed ${set} assets.` });
+      return res.status(200).json({ success: true, data: { message: `Removed ${set} assets.` } });
     } else {
-      return res.status(404).json({ error: 'Set assets not found.' });
+      return res.status(404).json({ success: false, error: 'Set assets not found.' });
     }
   } catch (err: any) {
-    return res.status(500).json({ error: err.message || String(err) });
+    return res.status(500).json({ success: false, error: err.message || String(err) });
   }
 } 

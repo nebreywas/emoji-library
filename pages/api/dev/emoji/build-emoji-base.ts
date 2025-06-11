@@ -1,58 +1,39 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import fs from 'fs';
-import path from 'path';
-import fetch from 'node-fetch';
+import * as fs from 'fs';
+import * as path from 'path';
+import { EMOJI_SYSTEM_CONFIG } from '@config/emoji-system-config';
+import { handleApiError } from '../../../../utils/apiError';
+import { filenameToCode } from '../../../../lib/emoji/filenameToCode';
 
-// Unicode emoji-test.txt source
-const EMOJI_TEST_URL = 'https://unicode.org/Public/emoji/latest/emoji-test.txt';
-
-// Helper to parse emoji-test.txt
-function parseEmojiTest(txt: string) {
-  const lines = txt.split(/\r?\n/);
-  const result: Record<string, any> = {};
-  let group = '';
-  let subgroup = '';
-  for (const line of lines) {
-    if (line.startsWith('# group:')) {
-      group = line.replace('# group: ', '').trim();
-    } else if (line.startsWith('# subgroup:')) {
-      subgroup = line.replace('# subgroup: ', '').trim();
-    } else if (line.match(/^([0-9A-F ]+); fully-qualified/)) {
-      // Example: "1F600                                      ; fully-qualified     # 😀 grinning face"
-      const match = line.match(/^([0-9A-F ]+); fully-qualified\s+# (\S+) (.+)$/);
-      if (match) {
-        const codepoints = match[1].trim().split(' ').map(cp => cp.padStart(4, '0')).join('-').toUpperCase();
-        const unicode = match[2];
-        const name = match[3];
-        result[codepoints] = {
-          unicode,
-          name,
-          group,
-          subgroup,
-          codepoints,
-        };
+export default function handler(req: NextApiRequest, res: NextApiResponse) {
+  try {
+    const { sets } = EMOJI_SYSTEM_CONFIG;
+    // Build the base emoji map from all sets
+    const allCodes = new Set<string>();
+    for (const setKey in sets) {
+      const setInfo = sets[setKey];
+      const assetDir = path.join(process.cwd(), setInfo.assetDir);
+      if (!fs.existsSync(assetDir)) {
+        continue;
+      }
+      const files = fs.readdirSync(assetDir).filter(f => f.endsWith(setInfo.ext));
+      for (const file of files) {
+        const code = filenameToCode(setKey, file);
+        if (code) allCodes.add(code);
       }
     }
-  }
-  return result;
-}
-
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  try {
-    // Download emoji-test.txt
-    const response = await fetch(EMOJI_TEST_URL);
-    if (!response.ok) {
-      return res.status(500).json({ error: 'Failed to download emoji-test.txt' });
+    if (allCodes.size === 0) {
+      return res.status(400).json({ success: false, error: 'No emoji assets found in any set directories.' });
     }
-    const txt = await response.text();
-    // Parse
-    const emojiBase = parseEmojiTest(txt);
-    // Write to /public/dev/emoji/emoji-base.json
+    // Build base map: code -> { code }
+    const base: Record<string, { code: string }> = {};
+    for (const code of allCodes) {
+      base[code] = { code };
+    }
     const outPath = path.join(process.cwd(), 'public', 'dev', 'emoji', 'emoji-base.json');
-    fs.mkdirSync(path.dirname(outPath), { recursive: true });
-    fs.writeFileSync(outPath, JSON.stringify(emojiBase, null, 2), 'utf-8');
-    return res.status(200).json({ status: 'ok', count: Object.keys(emojiBase).length, outPath });
+    fs.writeFileSync(outPath, JSON.stringify(base, null, 2), 'utf-8');
+    return res.status(200).json({ success: true, data: { count: Object.keys(base).length, outPath } });
   } catch (err: any) {
-    return res.status(500).json({ error: err.message || String(err) });
+    handleApiError(res, err.message || 'Internal server error', 'INTERNAL_ERROR', 500, '/api/dev/emoji/build-emoji-base');
   }
 } 

@@ -36,5 +36,5 @@ export interface EmojiSetMap {
   };
 }
 
-// Remove old EmojiConfig type and refer to EmojiSystemConfig from config/emoji-system-config
-export type { EmojiSystemConfig } from '../../config/emoji-system-config'; 
+// Remove old EmojiConfig type and refer to EmojiSystemConfig and EmojiSetConfig from config barrel
+export type { EmojiSystemConfig, EmojiSetConfig } from '../../config'; 
